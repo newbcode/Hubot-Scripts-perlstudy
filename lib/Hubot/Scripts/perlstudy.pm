@@ -25,13 +25,12 @@ sub load {
 
                     $decode_body = decode ("utf8", $body);
                     #$robot->brain->{data}{old_body} = $decode_body;
-                    my @titles = $decode_body =~ m{<title>(.*?)</title>}gsm;
-                    my @times = $decode_body =~ m{<pubDate>(.*?)</pubDate>}gsm;
+                    my @titles = $decode_body =~ m{<!\[CDATA\[(.*?)\]\]>}gsm;
+                    my @times = $decode_body =~ m{<pubDate>(.*?) \+0900</pubDate>}gsm;
 
-                    #$msg->send($decode_body);
                     $msg->send(@times);
-                    #$msg->send(@titles);
-                    # $msg->send($robot->brain->{data}{old_body});
+                    $msg->send(@titles);
+                    #$msg->send($robot->brain->{data}{old_body});
                 }
             );
         }
