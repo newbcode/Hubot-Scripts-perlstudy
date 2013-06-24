@@ -7,31 +7,36 @@ use Encode;
 use LWP::UserAgent;
 use Data::Printer;
 
+my $decode_body;
+
 sub load {
     my ( $class, $robot ) = @_;
  
     $robot->hear(
         qr/^start/i,    
-        \&on_process,
-    );
-}
-
-sub on_process {
-    my $msg = shift;
-
-    my $user_input = $msg->match->[0];
-    
-    $msg->http("http://cafe.naver.com/perlstudy")->get(
         sub {
-            my ( $body, $hdr ) = @_;
-            return if ( !$body || $hdr->{Status} !~ /^2/ );
+            my $msg = shift;
+            my $user_input = $msg->match->[0];
+        
+            $msg->http("http://cafe.rss.naver.com/perlstudy")->get(
+                sub {
+                    my ( $body, $hdr ) = @_;
+                    return if ( !$body || $hdr->{Status} !~ /^2/ );
 
-            my $decode_body = decode ("euc-kr", $body);
-            $msg->send($decode_body);
+                    $decode_body = decode ("utf8", $body);
+                    #$robot->brain->{data}{old_body} = $decode_body;
+                    my @titles = $decode_body =~ m{<title>(.*?)</title>}gsm;
+                    my @times = $decode_body =~ m{<pubDate>(.*?)</pubDate>}gsm;
+
+                    #$msg->send($decode_body);
+                    $msg->send(@times);
+                    #$msg->send(@titles);
+                    # $msg->send($robot->brain->{data}{old_body});
+                }
+            );
         }
     );
 }
-
 1;
 
 =pod
