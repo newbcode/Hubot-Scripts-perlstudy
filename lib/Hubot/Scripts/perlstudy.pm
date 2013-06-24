@@ -24,13 +24,27 @@ sub load {
                     return if ( !$body || $hdr->{Status} !~ /^2/ );
 
                     $decode_body = decode ("utf8", $body);
-                    #$robot->brain->{data}{old_body} = $decode_body;
                     my @titles = $decode_body =~ m{<!\[CDATA\[(.*?)\]\]>}gsm;
                     my @times = $decode_body =~ m{<pubDate>(.*?) \+0900</pubDate>}gsm;
+                    $msg->send('befor if in');
 
-                    $msg->send(@times);
-                    $msg->send(@titles);
-                    #$msg->send($robot->brain->{data}{old_body});
+                    my @new_titles;
+                    if ( $robot->brain->{data}{old_titles} ) {
+                    $msg->send('if in');
+                    my $cnt = 0;
+                        for my $title (@titles) {
+                            if ( $title eq $robot->brain->{data}{old_titles}->[$cnt] ) {
+                                push @new_titles, $robot->brain->{data}{old_titles}->[$cnt];
+                                $msg->send('unless in');
+                            }
+                        $cnt++;
+                        }
+                    }
+                    else {
+                        $robot->brain->{data}{old_titles} = \@titles;
+                        $robot->brain->{data}{old_times} = \@times;
+                    }
+                    $msg->send(@new_titles);
                 }
             );
         }
