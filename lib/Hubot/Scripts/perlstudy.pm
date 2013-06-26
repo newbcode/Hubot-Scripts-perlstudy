@@ -6,48 +6,61 @@ use warnings;
 use Encode;
 use LWP::UserAgent;
 use Data::Printer;
+use AnyEvent::DateTime::Cron;
 
-my $decode_body;
+my $cron = AnyEvent::DateTime::Cron->new(time_zone => 'local');
 
 sub load {
     my ( $class, $robot ) = @_;
  
     $robot->hear(
-        qr/^start/i,    
+        qr/^perlstudy:? on *$/i,    
         sub {
             my $msg = shift;
             my $user_input = $msg->match->[0];
-        
-            $msg->http("http://cafe.rss.naver.com/perlstudy")->get(
-                sub {
-                    my ( $body, $hdr ) = @_;
-                    return if ( !$body || $hdr->{Status} !~ /^2/ );
 
-                    $decode_body = decode ("utf8", $body);
-                    my @titles = $decode_body =~ m{<!\[CDATA\[(.*?)\]\]>}gsm;
-                    my @times = $decode_body =~ m{<pubDate>(.*?) \+0900</pubDate>}gsm;
-                    $msg->send('befor if in');
+            $cron->add ( '*/1 * * * *' => sub {
+                    $msg->http("http://cafe.rss.naver.com/perlstudy")->get(
+                        sub {
+                            my ( $body, $hdr ) = @_;
+                            return if ( !$body || $hdr->{Status} !~ /^2/ );
 
-                    my @new_titles;
-                    if ( $robot->brain->{data}{old_titles} ) {
-                    $msg->send('if in');
-                    my $cnt = 0;
-                        for my $title (@titles) {
-                            if ( $title eq $robot->brain->{data}{old_titles}->[$cnt] ) {
-                                push @new_titles, $robot->brain->{data}{old_titles}->[$cnt];
-                                $msg->send('unless in');
+                            my $decode_body = decode ("utf8", $body);
+                            my @titles = $decode_body =~ m{<!\[CDATA\[(.*?)\]\]>}gsm;
+                            my @times = $decode_body =~ m{<pubDate>(.*?) \+0900</pubDate>}gsm;
+
+                            my @new_titles;
+                            my $cnt = 0;
+
+                            if ( $robot->brain->{data}{old_titles} ) {
+                            LINE: for my $title (@titles) {
+                                unless ( $title eq $robot->brain->{data}{old_titles}->[$cnt] ) {
+                                    push @new_titles, $title;
+                                    splice @titles, $cnt, 1;
+                                    last LINE;
+                                }
+                                $cnt++;
+                                }
                             }
-                        $cnt++;
+                            else {
+                                $robot->brain->{data}{old_titles} = \@titles;
+                                $robot->brain->{data}{old_times} = \@times;
+                            }
+                            my $date = `date +%T`;
+                            $msg->send(@new_titles);
+                            $msg->send('Start Cron'. "$date");
                         }
-                    }
-                    else {
-                        $robot->brain->{data}{old_titles} = \@titles;
-                        $robot->brain->{data}{old_times} = \@times;
-                    }
-                    $msg->send(@new_titles);
+                    );
                 }
             );
+            $cron->start;
         }
+    );
+    $robot->hear(
+            qr/^perlstudy:? (?:off|finsh) *$/i,
+            sub {
+                $cron->stop;
+            }
     );
 }
 1;
