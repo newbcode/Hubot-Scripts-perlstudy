@@ -18,6 +18,7 @@ sub load {
         sub {
             my $msg = shift;
             my $user_input = $msg->match->[0];
+            $msg->send('naver cafe(perlstudy) to start monitoring ...');
 
             $cron->add ( '*/1 * * * *' => sub {
                     $msg->http("http://cafe.rss.naver.com/perlstudy")->get(
@@ -46,9 +47,7 @@ sub load {
                                 $robot->brain->{data}{old_titles} = \@titles;
                                 $robot->brain->{data}{old_times} = \@times;
                             }
-                            my $date = `date +%T`;
                             $msg->send(@new_titles);
-                            $msg->send('Start Cron'. "$date");
                         }
                     );
                 }
@@ -56,10 +55,14 @@ sub load {
             $cron->start;
         }
     );
+
     $robot->hear(
             qr/^perlstudy:? (?:off|finsh) *$/i,
+
             sub {
+                my $msg = shift;
                 $cron->stop;
+                $msg->send('naver cafe(perlstudy) to stop monitoring ...');
             }
     );
 }
@@ -73,7 +76,9 @@ sub load {
  
 =head1 SYNOPSIS
 
-    naver perl cafe polling script
+    naver perl cafe (new issue) monitoring.
+    perlstudy on - naver cafe(perlstudy) to start monitoring.
+    perlstudy off|finsh - naver cafe(perlstudy) to stop monitoring.
  
 =head1 AUTHOR
 
