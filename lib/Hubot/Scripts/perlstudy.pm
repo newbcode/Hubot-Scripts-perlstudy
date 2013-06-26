@@ -20,7 +20,7 @@ sub load {
             my $user_input = $msg->match->[0];
             $msg->send('naver cafe(perlstudy) to start monitoring ...');
 
-            $cron->add ( '*/59 * * * *' => sub {
+            $cron->add ( '*/1 * * * *' => sub {
                     $msg->http("http://cafe.rss.naver.com/perlstudy")->get(
                         sub {
                             my ( $body, $hdr ) = @_;
@@ -31,6 +31,7 @@ sub load {
                             my @times = $decode_body =~ m{<pubDate>(.*?) \+0900</pubDate>}gsm;
 
                             my @new_titles;
+                            my $flag ='off';
                             my $cnt = 0;
 
                             if ( $robot->brain->{data}{old_titles} ) {
@@ -38,6 +39,7 @@ sub load {
                                 unless ( $title eq $robot->brain->{data}{old_titles}->[$cnt] ) {
                                     push @new_titles, $title;
                                     splice @titles, $cnt, 1;
+                                    $flag = 'on';
                                     last LINE;
                                 }
                                 $cnt++;
@@ -47,7 +49,15 @@ sub load {
                                 $robot->brain->{data}{old_titles} = \@titles;
                                 $robot->brain->{data}{old_times} = \@times;
                             }
-                            $msg->send(@new_titles);
+
+                            if ( @new_titles ) {
+                                p @new_titles;
+                                my $date = `date`;
+                                $msg->send($date);
+                                $msg->send('카페(perlstudy)에  새로운질문(댓글)이 올라왔습니다');
+                                $msg->send('-> ' . "@new_titles");
+                                shift @new_titles;
+                            }
                         }
                     );
                 }
