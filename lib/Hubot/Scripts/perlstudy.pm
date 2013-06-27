@@ -34,11 +34,9 @@ sub load {
                             my $cnt = 0;
 
                             if ( $robot->brain->{data}{old_titles} ) {
-                            LINE: for my $title (@titles) {
+                            for my $title (@titles) {
                                 unless ( $title eq $robot->brain->{data}{old_titles}->[$cnt] ) {
                                     push @new_titles, $title;
-                                    splice @titles, $cnt, 1;
-                                    last LINE;
                                 }
                                 $cnt++;
                                 }
@@ -48,15 +46,12 @@ sub load {
                                 $robot->brain->{data}{old_times} = \@times;
                             }
 
-                            if ( @new_titles ) {
-                                p @new_titles;
-                                my $old_title = pop @new_titles;
-                                unless ( $old_title eq @new_titles[0] ) {
-                                    my $date = `date`;
-                                    $msg->send($date);
-                                    $msg->send('카페(perlstudy)에 새로운 질문(댓글)이 올라왔습니다');
-                                    $msg->send('-> ' . "@new_titles");
-                                }
+                            if ( $new_titles[0] eq $robot->brain->{data}{olde_titles}->[0]) {
+                            }
+                            else {
+                                $msg->send('카페(perlstudy)에 새로운 질문(댓글)이 올라왔습니다');
+                                $msg->send('-> ' . "$new_titles[0]");
+                                $robot->brain->{data}{old_titles} = \@titles;
                             }
                         }
                     );
