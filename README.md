@@ -1,4 +1,16 @@
-##Naver Perl Cafe - perlstudy polling script##
+## NAME ##
 
-Naver Perl Cafe에 등로된 글을 일정한 시간에 polling하여 
-IRC perl-kr에 알려준다
+Hubot::Scripts:perlstudy
+
+## SYNOPSIS ##
+
+```
+    perlstudy off|finsh - naver cafe(perlstudy) to stop monitoring.
+    perlstudy status - naver cafe(perlstudy) status
+```
+
+## DESCRIPTION ##
+
+perlstudy on - naver cafe(perlstudy) to start monitoring.
+
+Naver Perl Cafe에 등록된 이슈를 모니터링.
