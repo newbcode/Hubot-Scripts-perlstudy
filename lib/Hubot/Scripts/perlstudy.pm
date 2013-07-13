@@ -21,7 +21,7 @@ sub load {
             my $user_input = $msg->match->[0];
             $msg->send('It has been started monitoring [cafe-perlstudy]...');
 
-           $cron->add ( '*/1 * * * *' => sub {
+           $cron->add ( '*/10 * * * *' => sub {
                     $msg->http("http://cafe.naver.com/MyCafeIntro.nhn?clubid=18062050")->get(
                         sub {
                             my ( $body, $hdr ) = @_;
