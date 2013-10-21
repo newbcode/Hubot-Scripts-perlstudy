@@ -13,7 +13,18 @@ my $cron = AnyEvent::DateTime::Cron->new(time_zone => 'local');
 sub load {
     my ( $class, $robot ) = @_;
     my $flag = 'off';
- 
+    my $user;
+
+    $robot->enter(
+        sub {
+            my $msg = shift;
+            $user = $msg->message->user->{name};
+            if ( $user eq 'misskag' ) {
+                $msg->send('perlstudy on');
+            }
+        }
+    );
+
     $robot->hear(
         qr/^perlstudy:? on *$/i,    
         sub {
