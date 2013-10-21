@@ -13,86 +13,77 @@ my $cron = AnyEvent::DateTime::Cron->new(time_zone => 'local');
 sub load {
     my ( $class, $robot ) = @_;
     my $flag = 'off';
-    my $user;
 
     $robot->enter(
         sub {
             my $msg = shift;
-            $user = $msg->message->user->{name};
-            if ( $user eq 'misskag' ) {
-                $msg->send('perlstudy on');
-            }
-        }
-    );
-
-    $robot->hear(
-        qr/^perlstudy:? on *$/i,    
-        sub {
-            my $msg = shift;
             my $user_input = $msg->match->[0];
-            $msg->send('It has been started monitoring [cafe-perlstudy]...');
+            my $user = $msg->message->user->{name};
 
-            #$cron->add ( '*/10 * * * *' => sub {
-            $cron->add ( '*/1 * * * *' => sub {
-                    $msg->http("http://cafe.naver.com/MyCafeIntro.nhn?clubid=18062050")->get(
-                        sub {
-                            my ( $body, $hdr ) = @_;
-                            return if ( !$body || $hdr->{Status} !~ /^2/ );
+            if ( $user eq 'misskang' ) {
+                $msg->send('It has been started monitoring [cafe-perlstudy]...');
 
-                            my $decode_body = decode ("euc-kr", $body);
+                $cron->add ( '*/1 * * * *' => sub {
+                        $msg->http("http://cafe.naver.com/MyCafeIntro.nhn?clubid=18062050")->get(
+                            sub {
+                                my ( $body, $hdr ) = @_;
+                                return if ( !$body || $hdr->{Status} !~ /^2/ );
 
-                            my @titles = $decode_body =~ m{<a href="/ArticleRead.nhn\?clubid=18062050&articleid=\w+&referrerAllArticles=true" class="m-tcol-c" title="(.*?)">}gsm;
-                            my @urls = $decode_body =~ m{<a href="/ArticleRead.nhn\?clubid=18062050&articleid=(\w+)&referrerAllArticles=true" class="m-tcol-c" title=".*?">}gsm;
-                            my @times = $decode_body =~ m{<\!-- 전체 목록 보기에서 질문 답변 게시판의 게시물인 경우 앞에 Q\.를 붙인다 -->.*?<td class="m-tcol-c">(.*?)</td>}gsm;
-                            my @quests = $decode_body =~ m{<\!-- 전체 목록 보기에서 질문 답변 게시판의 게시물인 경우 앞에 Q\.를 붙인다 -->.*?<div class="ellipsis m-tcol-c">(.*?)</div>}gsm;
-                            my @strongs = $decode_body =~ m{<a href="/ArticleRead.nhn\?clubid=18062050&articleid=\w+&referrerAllArticles=true" class="m-tcol-c" title=".*?">.*?</a>(.*?)</span>}gsm; 
+                                my $decode_body = decode ("euc-kr", $body);
 
-                            my @reps;
-                            foreach my $strong ( @strongs ) {
-                                if ( $strong =~ m{<strong>(\w+)</strong>} ) {
-                                    push @reps, "$1";
-                                }
-                                else {
-                                    push @reps, '0';
-                                }
-                            }
+                                my @titles = $decode_body =~ m{<a href="/ArticleRead.nhn\?clubid=18062050&articleid=\w+&referrerAllArticles=true" class="m-tcol-c" title="(.*?)">}gsm;
+                                my @urls = $decode_body =~ m{<a href="/ArticleRead.nhn\?clubid=18062050&articleid=(\w+)&referrerAllArticles=true" class="m-tcol-c" title=".*?">}gsm;
+                                my @times = $decode_body =~ m{<\!-- 전체 목록 보기에서 질문 답변 게시판의 게시물인 경우 앞에 Q\.를 붙인다 -->.*?<td class="m-tcol-c">(.*?)</td>}gsm;
+                                my @quests = $decode_body =~ m{<\!-- 전체 목록 보기에서 질문 답변 게시판의 게시물인 경우 앞에 Q\.를 붙인다 -->.*?<div class="ellipsis m-tcol-c">(.*?)</div>}gsm;
+                                my @strongs = $decode_body =~ m{<a href="/ArticleRead.nhn\?clubid=18062050&articleid=\w+&referrerAllArticles=true" class="m-tcol-c" title=".*?">.*?</a>(.*?)</span>}gsm; 
 
-                            if ( $robot->brain->{data}{old_titles} ) {
-                                unless( $titles[0] eq $robot->brain->{data}{old_titles}->[0]) {
-                                    $msg->send('카페(perlstudy)에 새로운 질문이 등록 되었습니다.');
-                                    $msg->send("제목:[$titles[0]]"." 등록자:[$quests[0]]"." 등록시간:[$times[0]]" );
-                                    $msg->send("바로가기->http://cafe.naver.com/perlstudy/$urls[0]");
-                                    $robot->brain->{data}{old_titles} = \@titles;
-                                }
-                            }
-                            
-                            if ( $robot->brain->{data}{old_reps} ) {
-                                my $cnt = 0;
-                                foreach my $rep ( @reps ) {
-                                    last if $rep == '0';
-                                    unless ( $rep eq $robot->brain->{data}{old_reps}->[$cnt] ) {
-                                        $msg->send('카페(perlstudy)에 새로운 답변이 등록 되었습니다.');
-                                        $msg->send("제목:[$titles[$cnt]]"." 등록자:[$quests[$cnt]]"." 등록시간:[$times[$cnt]]" );
-                                        $msg->send("바로가기->http://cafe.naver.com/perlstudy/$urls[$cnt]");
-                                        $robot->brain->{data}{old_reps} = \@reps;
+                                my @reps;
+                                foreach my $strong ( @strongs ) {
+                                    if ( $strong =~ m{<strong>(\w+)</strong>} ) {
+                                        push @reps, "$1";
                                     }
-                                    $cnt++;
+                                    else {
+                                        push @reps, '0';
+                                    }
+                                }
+
+                                if ( $robot->brain->{data}{old_titles} ) {
+                                    unless( $titles[0] eq $robot->brain->{data}{old_titles}->[0]) {
+                                        $msg->send('카페(perlstudy)에 새로운 질문이 등록 되었습니다.');
+                                        $msg->send("제목:[$titles[0]]"." 등록자:[$quests[0]]"." 등록시간:[$times[0]]" );
+                                        $msg->send("바로가기->http://cafe.naver.com/perlstudy/$urls[0]");
+                                        $robot->brain->{data}{old_titles} = \@titles;
+                                    }
+                                }
+                                
+                                if ( $robot->brain->{data}{old_reps} ) {
+                                    my $cnt = 0;
+                                    foreach my $rep ( @reps ) {
+                                        last if $rep == '0';
+                                        unless ( $rep eq $robot->brain->{data}{old_reps}->[$cnt] ) {
+                                            $msg->send('카페(perlstudy)에 새로운 답변이 등록 되었습니다.');
+                                            $msg->send("제목:[$titles[$cnt]]"." 등록자:[$quests[$cnt]]"." 등록시간:[$times[$cnt]]" );
+                                            $msg->send("바로가기->http://cafe.naver.com/perlstudy/$urls[$cnt]");
+                                            $robot->brain->{data}{old_reps} = \@reps;
+                                        }
+                                        $cnt++;
+                                    }
+                                }
+
+                                else {
+                                    $robot->brain->{data}{old_titles} = \@titles;
+                                    $robot->brain->{data}{old_urls} = \@urls;
+                                    $robot->brain->{data}{old_times} = \@times;
+                                    $robot->brain->{data}{old_quests} = \@quests;
+                                    $robot->brain->{data}{old_reps} = \@reps;
                                 }
                             }
-
-                            else {
-                                $robot->brain->{data}{old_titles} = \@titles;
-                                $robot->brain->{data}{old_urls} = \@urls;
-                                $robot->brain->{data}{old_times} = \@times;
-                                $robot->brain->{data}{old_quests} = \@quests;
-                                $robot->brain->{data}{old_reps} = \@reps;
-                            }
-                        }
-                    );
-                }
-            );
-            $cron->start;
-            $flag = 'on';
+                        );
+                    }
+                );
+                $cron->start;
+                $flag = 'on';
+            }
         }
     );
 
