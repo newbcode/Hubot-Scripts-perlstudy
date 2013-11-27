@@ -20,7 +20,7 @@ sub load {
             my $user_input = $msg->match->[0];
             my $user = $msg->message->user->{name};
 
-            if ( $user eq 'misskang' ) {
+            if ( $user =~ /^misskang/ ) {
                 $msg->send('It has been started monitoring [cafe-perlstudy]...');
 
                 $cron->add ( '*/1 * * * *' => sub {
